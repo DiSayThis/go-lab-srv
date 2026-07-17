@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"go-api/configs"
+	"go-api/pkg/res"
 	"net/http"
 )
 
@@ -22,13 +23,25 @@ func NewAuthHandler(router *http.ServeMux, deps AuthHandlerDeps) {
 }
 
 func (handler *AuthHandler) login(w http.ResponseWriter, req *http.Request) {
-	fmt.Println("login", handler.Config.Auth.Secret)
-	res := LoginResponse{
+	var payload LoginRequest
+	err := json.NewDecoder(req.Body).Decode(&payload)
+	if err != nil {
+		res.JsonResponse(w, map[string]string{"error": "Invalid request body: " + err.Error()}, http.StatusBadRequest)
+		return
+	}
+	if payload.Email == "" {
+		res.JsonResponse(w, map[string]string{"error": "Email is required"}, http.StatusBadRequest)
+		return
+	}
+	if payload.Password == "" {
+		res.JsonResponse(w, map[string]string{"error": "Password is required"}, http.StatusBadRequest)
+		return
+	}
+	fmt.Println("login", payload.Email, payload.Password)
+	data := LoginResponse{
 		Token: handler.Config.Auth.Secret,
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-	json.NewEncoder(w).Encode(res)
+	res.JsonResponse(w, data, http.StatusOK)
 }
 
 func (handler *AuthHandler) register(w http.ResponseWriter, req *http.Request) {
